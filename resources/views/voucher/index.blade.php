@@ -276,7 +276,6 @@
                 </div>
             </div>
 
-
         </div>
         <ul class="pagination pagination-secondary justify-content-end mt-3 me-5">
             {{ $data->onEachSide(1)->links('pagination::bootstrap-4') }}
@@ -351,6 +350,7 @@
                         _token: token
                     },
                     success: function(result) {
+                        console.log(result);
                         clearUserId(id, userid);
                     },
                     error: function(xhr) {
@@ -394,7 +394,7 @@
                 var token = $('meta[name="csrf-token"]').attr('content');
                 var url = "{{ route('spinner.update-status', ['id' => ':id']) }}";
                 url = url.replace(':id', id);
-
+                console.log(url);
                 $.ajax({
                     url: url,
                     type: 'POST',
@@ -403,7 +403,7 @@
                         _token: token
                     },
                     success: function(response) {
-                        // console.log(response);
+                        console.log(response);
                     },
                     error: function(xhr) {
                         alert('Gagal Update! , Silahkan Hub. Admin');
@@ -435,12 +435,16 @@
                     exportArrayToExcel();
                 }
             }
-
+            currentUrl
 
             function exportArrayToExcel() {
-                var currentURL = window.location.href;
-                var newParameter = '/1';
-                var newURL = currentURL.replace(/\/$/, "") + newParameter;
+                var currentURL =
+                    window.location.href;
+
+                var url = new URL(currentURL);
+                url.pathname += '/1';
+                var newURL = url.href;
+
                 console.log(newURL);
 
                 fetch(newURL)

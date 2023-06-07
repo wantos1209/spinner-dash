@@ -78,46 +78,8 @@ class SpinnerGeneratevoucherController extends Controller
     {
 
         $data = $this->getData();
-        $search_jenis_voucher = request('search_jenis_voucher');
-        $search_tanggal = request('search_tanggal');
 
-        $currentMonth = date('m');
-        $currentYear = date('Y');
-        $startDate = date('Y-m-d', strtotime($currentYear . '-' . $currentMonth . '-01'));
-        $endDate = date('Y-m-t', strtotime($currentYear . '-' . $currentMonth . '-01'));
-
-        $startDate2 = date('m/d/Y', strtotime($currentYear . '-' . $currentMonth . '-01'));
-        $endDate2 = date('m/t/Y', strtotime($currentYear . '-' . $currentMonth . '-01'));
-
-        $search_tgl_default = $startDate2 . ' - ' . $endDate2;
-
-        $search_tanggal = $search_tanggal == '' ? $search_tgl_default : $search_tanggal;
-
-        if ($search_tanggal != '') {
-            $dates = explode(" - ", $search_tanggal);
-            $startRange = $dates[0];
-            $endRange = $dates[1];
-            $results = [];
-            $results2 = [];
-
-            foreach ($data as $item) {
-                $tglExp = $item['tgl_exp'];
-                $tglExp = date("m/d/Y", strtotime($tglExp));
-                if ($tglExp >= $startRange && $tglExp <= $endRange) {
-                    $results[] = $item;
-                }
-            }
-            $data = $results;
-            if ($search_jenis_voucher != '') {
-                foreach ($data as $item2) {
-                    if (strtoupper($item2["jenisvoucher_nama"]) == strtoupper($search_jenis_voucher)) {
-                        $results2[] = $item2;
-                    }
-                }
-                $data = $results2;
-            }
-        }
-        // dd($data);
+        $search = request('search');
 
         // if ($search  != '') {
         //     $results = [];
@@ -130,10 +92,6 @@ class SpinnerGeneratevoucherController extends Controller
         //     $data =  $results;
         // }
 
-        // S
-
-        $jenis_voucher = $this->getData('', 'http://127.0.0.1:8006/api/jenisvouchergrouping');
-
         $perPage = 10;
         $page =  request()->get('page', 1);
         $slicedData = array_slice($data, ($page - 1) * $perPage, $perPage);
@@ -145,11 +103,9 @@ class SpinnerGeneratevoucherController extends Controller
             ['path' => url()->current()]
         );
 
-        return view('generatevoucher.index', [
+        return view('jenisvoucher.index', [
 
-            'data' => $paginator,
-            'search_tgl_default' => $search_tgl_default,
-            'jenis_voucher' => $jenis_voucher
+            'data' => $paginator
         ]);
     }
 
@@ -162,32 +118,6 @@ class SpinnerGeneratevoucherController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request['userid'] = auth()->user()->username;
-        $request['bo'] = getDataBo2();
-        $validator = Validator::make($request->all(), [
-            'jenis_voucher' => 'required|max:255',
-            'tgl_exp' => 'required|date',
-            'jumlah' => 'required|numeric'
-        ]);
-
-        $data = $request->all();
-
-        // Jika validasi gagal, kirimkan respon error ke Ajax
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()->all()]);
-        } else {
-            return $this->action('', $data, "POST");
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Data berhasil disimpan.',
-        ]);
-    }
-
-
-    public function store2(Request $request)
     {
 
         $request['userid'] = auth()->user()->username;
@@ -268,10 +198,12 @@ class SpinnerGeneratevoucherController extends Controller
 
     public function destroy($id)
     {
-        $data = $this->getData($id);
-        $methode = "DELETE";
-        $this->action($id, $data, $methode);
-        return redirect("/spinner/generatevoucher")->with('success', 'Item berhasil dihapus!');
+        $data = SpinnerGeneratevoucher::findOrFail($id);
+        $data->delete();
+
+        SpinnerVoucher::where('genvoucherid', $id)->delete();
+
+        return redirect("/spinner/generatevoucher")->with('success', 'Data voucher berhasil dihapus!');
     }
 
     function generateUniqueRandomString($length)
@@ -295,12 +227,9 @@ class SpinnerGeneratevoucherController extends Controller
         return $count > 0;
     }
 
-    public function getData($id = '', $url = '')
+    public function getData($id = '')
     {
-        if ($url == '') {
-            $url = $this->getUrl();
-        }
-
+        $url = $this->getUrl();
         $options = [
             'http' => [
                 'header' => 'postman-token: 54a06989-9a14-4515-afca-766a0f6f3dd9'
@@ -341,12 +270,12 @@ class SpinnerGeneratevoucherController extends Controller
         $url = $this->getUrl($id);
 
         $data = [
-            "jenis_voucher" => $data['jenis_voucher'],
-            "tgl_exp" => $data['tgl_exp'],
-            "jumlah" => $data['jumlah'],
-            "userid" => $data['userid'],
+            "nama" => $data['nama'],
+            "index" => $data['index'],
+            "saldo_point" => $data['saldo_point'],
             "bo" => $data['bo'],
         ];
+
         $data_string = json_encode($data);
         $headers = array(
             'Content-Type: application/json',

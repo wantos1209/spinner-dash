@@ -44,13 +44,14 @@
 
                             </div>
                             <div class="col-md-3">
+
                                 <select class="form-select search_jenis_voucher" aria-label="Default select example"
                                     name="search_jenis_voucher" id="search_jenis_voucher">
                                     <option value=''>Pilih jenis voucher</option>
                                     @foreach ($jenis_voucher as $jv)
-                                        <option value="{{ $jv->index }}"
-                                            {{ $jv->index == $search_jenis_voucher ? 'selected' : '' }}>
-                                            {{ $jv->nama }}
+                                        <option value="{{ $jv['nama'] }}"
+                                            {{ $jv['nama'] == $search_jenis_voucher ? 'selected' : '' }}>
+                                            {{ $jv['nama'] }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -90,25 +91,25 @@
                                     @foreach ($data as $d)
                                         <tr>
                                             <td class="text-center text-white"> {{ $loop->iteration }} </td>
-                                            <td class="text-center text-white"> {{ $d->jenis_voucher }} </td>
+                                            <td class="text-center text-white"> {{ $d['jenisvoucher_nama'] }} </td>
                                             <td class="text-center text-white">
                                                 @php
-                                                    $timestamp = strtotime($d->tgl_exp); // Contoh timestamp dari nilai yang ada
+                                                    $timestamp = strtotime($d['jenis_voucher']); // Contoh timestamp dari nilai yang ada
                                                     $date = date('d-m-Y', $timestamp);
                                                     echo $date;
                                                 @endphp
                                             </td>
-                                            <td class="text-center text-white"> {{ $d->jumlah }} </td>
+                                            <td class="text-center text-white"> {{ $d['jumlah'] }} </td>
                                             <td class="text-center project-actions text-right mt-10">
 
                                                 <button
-                                                    onclick="window.location.href='{{ route('spinner.voucher', ['id' => $d->id]) }}'"
+                                                    onclick="window.location.href='{{ route('spinner.voucher', ['id' => $d['id']]) }}'"
                                                     class="badge btn-danger bg-dark d-inline"><i class="fas fa-eye"></i>
                                                     <span class="badge">View</span></button>
 
 
                                                 <form class="d-inline"
-                                                    action="{{ url('/spinner/generatevoucher/delete/' . $d->id) }}"
+                                                    action="{{ url('/spinner/generatevoucher/delete/' . $d['id']) }}"
                                                     method="POST">
 
                                                     <input type="hidden" id="id" name="id">
@@ -116,8 +117,8 @@
                                                     @method('DELETE')
                                                     <button type="submit" class="badge btn-danger bg-dark"
                                                         data-bs-toggle="modal"
-                                                        data-bs-target="#modal-voucher-edit{{ $d->id }}"
-                                                        id="edit" value="{{ $d->id }}"
+                                                        data-bs-target="#modal-voucher-edit{{ $d['id'] }}"
+                                                        id="edit" value="{{ $d['id'] }}"
                                                         onclick="return confirm('Apakah anda yakin ingin menghapus?');">
                                                         <i class="fas fa-pencil-alt"></i>
                                                         <span class="badge">Delete</span>
@@ -160,7 +161,7 @@
                                             <select name="jenis_voucher" class="form-control" id="jenis_voucher">
                                                 <option value=''>Pilih Opsi</option>
                                                 @foreach ($jenis_voucher as $jv)
-                                                    <option value="{{ $jv->index }}">{{ $jv->nama }}</option>
+                                                    <option value="{{ $jv['nama'] }}">{{ $jv['nama'] }}</option>
                                                 @endforeach
                                             </select>
 

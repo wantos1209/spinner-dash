@@ -18,68 +18,186 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\Response;
 use App\Exports\UsersExport;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Pagination\LengthAwarePaginator;
+
 
 class SpinnerVoucherController extends Controller
 {
 
+    // public function index(Request $request, $id, $api = 0)
+    // {
+    //     $searchJenisKlaim = $request->query('search_jenis_klaim');
+    //     $search_status_transfer = $request->query('search_status_transfer');
+
+    //     $spinnervoucher = SpinnerVoucher::where('genvoucherid', $id)
+    //         ->when($searchJenisKlaim, function ($query, $jenisVoucher) {
+    //             if ($jenisVoucher === 'sudah_klaim') {
+    //                 return $query->whereRaw('COALESCE(userklaim, "") <> ""');
+    //             } else if ($jenisVoucher === 'belum_klaim') {
+    //                 return $query->whereRaw('COALESCE(userklaim, "") = ""');
+    //             }
+    //         })
+    //         ->when($search_status_transfer, function ($query, $status_transfer) {
+    //             if ($status_transfer == '1') {
+    //                 return $query->whereRaw('COALESCE(status_transfer, 0) = 1');
+    //             } else if ($status_transfer == '0') {
+    //                 return $query->whereRaw('COALESCE(status_transfer, 0) = 0');
+    //             }
+    //         })
+    //         ->latest()
+    //         ->filter(request(['search']))
+    //         ->paginate(10)
+    //         ->withQueryString();
+
+    //     $spinnervoucher2 = SpinnerVoucher::where('genvoucherid', $id)
+    //         ->when($searchJenisKlaim, function ($query, $jenisVoucher) {
+    //             if ($jenisVoucher === 'sudah_klaim') {
+    //                 return $query->whereRaw('COALESCE(userklaim, "") <> ""');
+    //             } else if ($jenisVoucher === 'belum_klaim') {
+    //                 return $query->whereRaw('COALESCE(userklaim, "") = ""');
+    //             }
+    //         })
+    //         ->when($search_status_transfer, function ($query, $status_transfer) {
+    //             if ($status_transfer == '1') {
+    //                 return $query->whereRaw('COALESCE(status_transfer, 0) = 1');
+    //             } else if ($status_transfer == '0') {
+    //                 return $query->whereRaw('COALESCE(status_transfer, 0) = 0');
+    //             }
+    //         })
+    //         ->latest()
+    //         ->filter(request(['search']))
+    //         ->get();
+
+    //     $spinnervoucher->getCollection()->each(function ($item) {
+    //         $item->jenis_voucher = SpinnerJenisvoucher::where('index', $item->jenis_voucher)->first()->nama;
+    //     });
+
+    //     $spinnervoucher2->each(function ($item) {
+    //         $item->jenis_voucher = SpinnerJenisvoucher::where('index', $item->jenis_voucher)->first()->nama;
+    //     });
+
+    //     $genvoucher = SpinnerGeneratevoucher::find($id);
+
+    //     $dataArray = [];
+    //     $dataArray[] = ["No", "Jenis Voucher", "Kode Voucher", "Username", "Nama Bo", "Saldo", "User Klaim", "Tgl Klaim", "Tgl Exp"];
+
+    //     foreach ($spinnervoucher2 as $index => $spv) {
+    //         $rowData = [
+    //             $index + 1,
+    //             $spv->jenis_voucher,
+    //             $spv->kode_voucher,
+    //             $spv->username,
+    //             $spv->bo,
+    //             $spv->saldo,
+    //             $spv->user_klaim,
+    //             $spv->tgl_klaim,
+    //             $spv->tgl_exp,
+    //         ];
+    //         $dataArray[] = $rowData;
+    //     }
+    //     $jenis_voucher = SpinnerJenisvoucher::get();
+
+    //     //SET TANGGAL================================================================================
+    //     $currentMonth = date('m');
+    //     $currentYear = date('Y');
+    //     $startDate = date('Y-m-d', strtotime($currentYear . '-' . $currentMonth . '-01'));
+    //     $endDate = date('Y-m-t', strtotime($currentYear . '-' . $currentMonth . '-01'));
+
+    //     $startDate2 = date('m/d/Y', strtotime($currentYear . '-' . $currentMonth . '-01'));
+    //     $endDate2 = date('m/t/Y', strtotime($currentYear . '-' . $currentMonth . '-01'));
+
+    //     $search_tgl_default = $startDate2 . ' - ' . $endDate2;
+    //     //==========================================================================================
+
+    //     if ($api == 0) {
+
+    //         return view('voucher.index', [
+    //             'title' => 'APK - Bo',
+    //             'menu' =>  'bo',
+    //             'data' => $spinnervoucher,
+    //             'jenis_voucher' => $jenis_voucher,
+    //             'id' => $id,
+    //             'datavoucher' => $dataArray,
+    //             'nama_bo' => $genvoucher->bo,
+    //             'jumlah' => $genvoucher->jumlah,
+    //             'search_tgl_default' => $search_tgl_default
+    //         ])->with('i', (request()->input('page', 1) - 1) * 5);
+    //     } else {
+    //         return response()->json($dataArray, Response::HTTP_OK);
+    //     }
+    // }
+
     public function index(Request $request, $id, $api = 0)
     {
-        $searchJenisKlaim = $request->query('search_jenis_klaim');
-        $search_status_transfer = $request->query('search_status_transfer');
+        $search = request('search');
+        $searchJenisKlaim = request('search_jenis_klaim');
+        $search_status_transfer = request('search_status_transfer');
 
-        $spinnervoucher = SpinnerVoucher::where('genvoucherid', $id)
-            ->when($searchJenisKlaim, function ($query, $jenisVoucher) {
-                if ($jenisVoucher === 'sudah_klaim') {
-                    return $query->whereRaw('COALESCE(userklaim, "") <> ""');
-                } else if ($jenisVoucher === 'belum_klaim') {
-                    return $query->whereRaw('COALESCE(userklaim, "") = ""');
+        $data = $this->getData($id);
+
+
+        if ($search  != '') {
+            $results = [];
+
+            foreach ($data as $d) {
+                if (
+                    str_contains(strtoupper($d["kode_voucher"]), strtoupper($search)) ||
+                    str_contains(strtoupper($d["username"]), strtoupper($search)) ||
+                    str_contains(strtoupper($d["userklaim"]), strtoupper($search)) ||
+                    str_contains(strtoupper($d["tgl_klaim"]), strtoupper($search)) ||
+                    str_contains(strtoupper($d["status_transfer"]), strtoupper($search))
+                ) {
+                    $results[] = $d;
                 }
-            })
-            ->when($search_status_transfer, function ($query, $status_transfer) {
-                if ($status_transfer == '1') {
-                    return $query->whereRaw('COALESCE(status_transfer, 0) = 1');
-                } else if ($status_transfer == '0') {
-                    return $query->whereRaw('COALESCE(status_transfer, 0) = 0');
+            }
+            $data =  $results;
+        }
+
+        if ($searchJenisKlaim == 'sudah_klaim') {
+            $results = [];
+
+            foreach ($data as $d) {
+                if (strtoupper($d["userklaim"]) != '' || strtoupper($d["userklaim"]) != null) {
+                    $results[] = $d;
                 }
-            })
-            ->latest()
-            ->filter(request(['search']))
-            ->paginate(10)
-            ->withQueryString();
+            }
+            $data =  $results;
+        } else if ($searchJenisKlaim == 'belum_klaim') {
+            $results = [];
 
-        $spinnervoucher2 = SpinnerVoucher::where('genvoucherid', $id)
-            ->when($searchJenisKlaim, function ($query, $jenisVoucher) {
-                if ($jenisVoucher === 'sudah_klaim') {
-                    return $query->whereRaw('COALESCE(userklaim, "") <> ""');
-                } else if ($jenisVoucher === 'belum_klaim') {
-                    return $query->whereRaw('COALESCE(userklaim, "") = ""');
+            foreach ($data as $d) {
+                if (strtoupper($d["userklaim"]) == '' || strtoupper($d["userklaim"]) == null) {
+                    $results[] = $d;
                 }
-            })
-            ->when($search_status_transfer, function ($query, $status_transfer) {
-                if ($status_transfer == '1') {
-                    return $query->whereRaw('COALESCE(status_transfer, 0) = 1');
-                } else if ($status_transfer == '0') {
-                    return $query->whereRaw('COALESCE(status_transfer, 0) = 0');
+            }
+            $data =  $results;
+        }
+        if ($search_status_transfer == 1) {
+            $results = [];
+
+            foreach ($data as $d) {
+                if (strtoupper($d["status_transfer"]) == 1) {
+                    $results[] = $d;
                 }
-            })
-            ->latest()
-            ->filter(request(['search']))
-            ->get();
+            }
+            $data =  $results;
+        } else  if ($search_status_transfer === "0") {
+            $results = [];
 
-        $spinnervoucher->getCollection()->each(function ($item) {
-            $item->jenis_voucher = SpinnerJenisvoucher::where('index', $item->jenis_voucher)->first()->nama;
-        });
+            foreach ($data as $d) {
+                if (strtoupper($d["status_transfer"]) == 0 || strtoupper($d["status_transfer"]) == '' || strtoupper($d["status_transfer"]) == null) {
+                    $results[] = $d;
+                }
+            }
+            $data =  $results;
+        }
 
-        $spinnervoucher2->each(function ($item) {
-            $item->jenis_voucher = SpinnerJenisvoucher::where('index', $item->jenis_voucher)->first()->nama;
-        });
-
-        $genvoucher = SpinnerGeneratevoucher::find($id);
+        $spinnervoucher = json_decode(json_encode($data), false);
 
         $dataArray = [];
         $dataArray[] = ["No", "Jenis Voucher", "Kode Voucher", "Username", "Nama Bo", "Saldo", "User Klaim", "Tgl Klaim", "Tgl Exp"];
 
-        foreach ($spinnervoucher2 as $index => $spv) {
+        foreach ($spinnervoucher as $index => $spv) {
             $rowData = [
                 $index + 1,
                 $spv->jenis_voucher,
@@ -87,12 +205,15 @@ class SpinnerVoucherController extends Controller
                 $spv->username,
                 $spv->bo,
                 $spv->saldo,
-                $spv->user_klaim,
+                $spv->userklaim,
                 $spv->tgl_klaim,
                 $spv->tgl_exp,
             ];
             $dataArray[] = $rowData;
         }
+
+        $genvoucher = SpinnerGeneratevoucher::find($id);
+
         $jenis_voucher = SpinnerJenisvoucher::get();
 
         //SET TANGGAL================================================================================
@@ -106,6 +227,17 @@ class SpinnerVoucherController extends Controller
 
         $search_tgl_default = $startDate2 . ' - ' . $endDate2;
         //==========================================================================================
+
+        $perPage = 10;
+        $page =  request()->get('page', 1);
+        $slicedData = array_slice($spinnervoucher, ($page - 1) * $perPage, $perPage);
+        $spinnervoucher = new LengthAwarePaginator(
+            $slicedData,
+            count($spinnervoucher),
+            $perPage,
+            $page,
+            ['path' => url()->current()]
+        );
 
         if ($api == 0) {
 
@@ -116,8 +248,8 @@ class SpinnerVoucherController extends Controller
                 'jenis_voucher' => $jenis_voucher,
                 'id' => $id,
                 'datavoucher' => $dataArray,
-                'nama_bo' => $genvoucher->bo,
-                'jumlah' => $genvoucher->jumlah,
+                'nama_bo' => getDataBo2(),
+                'jumlah' => count($dataArray),
                 'search_tgl_default' => $search_tgl_default
             ])->with('i', (request()->input('page', 1) - 1) * 5);
         } else {
@@ -126,10 +258,117 @@ class SpinnerVoucherController extends Controller
     }
     public function index2(Request $request, $api = 0)
     {
-        $searchJenisKlaim = $request->query('search_jenis_klaim');
-        $search_status_transfer = $request->query('search_status_transfer');
-        $search_tanggal = $request->input('search_tanggal');
-        // dd($search_tanggal != '');
+        $search = request('search');
+        $searchJenisKlaim = request('search_jenis_klaim');
+        $search_status_transfer = request('search_status_transfer');
+        $search_tanggal = request('search_tanggal');
+
+        $data = $this->getData();
+
+        $currentMonth = date('m');
+        $currentYear = date('Y');
+        $startDate = date('Y-m-d', strtotime($currentYear . '-' . $currentMonth . '-01'));
+        $endDate = date('Y-m-t', strtotime($currentYear . '-' . $currentMonth . '-01'));
+
+        $startDate2 = date('m/d/Y', strtotime($currentYear . '-' . $currentMonth . '-01'));
+        $endDate2 = date('m/t/Y', strtotime($currentYear . '-' . $currentMonth . '-01'));
+
+        $search_tgl_default = $startDate2 . ' - ' . $endDate2;
+
+        $search_tanggal = $search_tanggal == '' ? $search_tgl_default : $search_tanggal;
+
+        if ($search_tanggal != '') {
+            $dates = explode(" - ", $search_tanggal);
+            $startRange = $dates[0];
+            $endRange = $dates[1];
+            $results = [];
+
+            foreach ($data as $item) {
+                $tglExp = $item['tgl_exp'];
+                $tglExp = date("m/d/Y", strtotime($tglExp));
+                if ($tglExp >= $startRange && $tglExp <= $endRange) {
+                    $results[] = $item;
+                }
+            }
+            $data = $results;
+            if ($search  != '') {
+                $results = [];
+
+                foreach ($data as $d) {
+                    if (
+                        str_contains(strtoupper($d["kode_voucher"]), strtoupper($search)) ||
+                        str_contains(strtoupper($d["username"]), strtoupper($search)) ||
+                        str_contains(strtoupper($d["userklaim"]), strtoupper($search)) ||
+                        str_contains(strtoupper($d["tgl_klaim"]), strtoupper($search)) ||
+                        str_contains(strtoupper($d["status_transfer"]), strtoupper($search))
+                    ) {
+                        $results[] = $d;
+                    }
+                }
+                $data =  $results;
+            }
+
+            if ($searchJenisKlaim == 'sudah_klaim') {
+                $results = [];
+
+                foreach ($data as $d) {
+                    if (strtoupper($d["userklaim"]) != '' || strtoupper($d["userklaim"]) != null) {
+                        $results[] = $d;
+                    }
+                }
+                $data =  $results;
+            } else if ($searchJenisKlaim == 'belum_klaim') {
+                $results = [];
+
+                foreach ($data as $d) {
+                    if (strtoupper($d["userklaim"]) == '' || strtoupper($d["userklaim"]) == null) {
+                        $results[] = $d;
+                    }
+                }
+                $data =  $results;
+            }
+            if ($search_status_transfer == 1) {
+                $results = [];
+
+                foreach ($data as $d) {
+                    if (strtoupper($d["status_transfer"]) == 1) {
+                        $results[] = $d;
+                    }
+                }
+                $data =  $results;
+            } else  if ($search_status_transfer === "0") {
+                $results = [];
+
+                foreach ($data as $d) {
+                    if (strtoupper($d["status_transfer"]) == 0 || strtoupper($d["status_transfer"]) == '' || strtoupper($d["status_transfer"]) == null) {
+                        $results[] = $d;
+                    }
+                }
+                $data =  $results;
+            }
+        }
+
+        $spinnervoucher = json_decode(json_encode($data), false);
+
+        $dataArray = [];
+        $dataArray[] = ["No", "Jenis Voucher", "Kode Voucher", "Username", "Nama Bo", "Saldo", "User Klaim", "Tgl Klaim", "Tgl Exp"];
+
+        foreach ($spinnervoucher as $index => $spv) {
+            $rowData = [
+                $index + 1,
+                $spv->jenis_voucher,
+                $spv->kode_voucher,
+                $spv->username,
+                $spv->bo,
+                $spv->saldo,
+                $spv->userklaim,
+                $spv->tgl_klaim,
+                $spv->tgl_exp,
+            ];
+            $dataArray[] = $rowData;
+        }
+
+        $jenis_voucher = SpinnerJenisvoucher::get();
 
         //SET TANGGAL================================================================================
         $currentMonth = date('m');
@@ -141,97 +380,18 @@ class SpinnerVoucherController extends Controller
         $endDate2 = date('m/t/Y', strtotime($currentYear . '-' . $currentMonth . '-01'));
 
         $search_tgl_default = $startDate2 . ' - ' . $endDate2;
-        if ($search_tanggal == '') {
-            $search_tanggal = $search_tgl_default;
-        }
         //==========================================================================================
 
-        $spinnervoucher = SpinnerVoucher::when($searchJenisKlaim, function ($query, $jenisVoucher) {
-            if ($jenisVoucher === 'sudah_klaim') {
-                return $query->whereRaw('COALESCE(userklaim, "") <> ""');
-            } else if ($jenisVoucher === 'belum_klaim') {
-                return $query->whereRaw('COALESCE(userklaim, "") = ""');
-            }
-        })
-            ->when($search_status_transfer, function ($query, $status_transfer) {
-                if ($status_transfer == '1') {
-                    return $query->whereRaw('COALESCE(status_transfer, 0) = 1');
-                } else if ($status_transfer == '0') {
-                    return $query->whereRaw('COALESCE(status_transfer, 0) = 0');
-                }
-            })
-            ->when($search_tanggal != '', function ($query) use ($search_tanggal) {
-                $dates = explode(' - ', $search_tanggal);
-                $startDate = date_create_from_format('m/d/Y', $dates[0]);
-                $endDate = date_create_from_format('m/d/Y', $dates[1]);
-                $startDateFormatted = date_format($startDate, 'Y-m-d');
-                $endDateFormatted = date_format($endDate, 'Y-m-d');
-                return $query->whereBetween('tgl_exp', [$startDateFormatted, $endDateFormatted]);
-            }, function ($query) use (&$startDate, &$endDate) {
-                return $query->whereBetween('tgl_exp', [$startDate, $endDate]);
-            })
-
-            ->latest()
-            ->filter(request(['search']))
-            ->paginate(10)
-            ->withQueryString();
-
-        $spinnervoucher2 = SpinnerVoucher::when($searchJenisKlaim, function ($query, $jenisVoucher) {
-            if ($jenisVoucher === 'sudah_klaim') {
-                return $query->whereRaw('COALESCE(userklaim, "") <> ""');
-            } else if ($jenisVoucher === 'belum_klaim') {
-                return $query->whereRaw('COALESCE(userklaim, "") = ""');
-            }
-        })
-            ->when($search_status_transfer, function ($query, $status_transfer) {
-                if ($status_transfer == '1') {
-                    return $query->whereRaw('COALESCE(status_transfer, 0) = 1');
-                } else if ($status_transfer == '0') {
-                    return $query->whereRaw('COALESCE(status_transfer, 0) = 0');
-                }
-            })
-            ->when($search_tanggal != '', function ($query) use ($search_tanggal) {
-                $dates = explode(' - ', $search_tanggal);
-                $startDate = date_create_from_format('m/d/Y', $dates[0]);
-                $endDate = date_create_from_format('m/d/Y', $dates[1]);
-                $startDateFormatted = date_format($startDate, 'Y-m-d');
-                $endDateFormatted = date_format($endDate, 'Y-m-d');
-                return $query->whereBetween('tgl_exp', [$startDateFormatted, $endDateFormatted]);
-            }, function ($query) use (&$startDate, &$endDate) {
-                return $query->whereBetween('tgl_exp', [$startDate, $endDate]);
-            })
-
-            ->latest()
-            ->filter(request(['search']))
-            ->get();
-
-
-        $spinnervoucher->getCollection()->each(function ($item) {
-            $item->jenis_voucher = SpinnerJenisvoucher::where('index', $item->jenis_voucher)->first()->nama;
-        });
-
-        $spinnervoucher2->each(function ($item) {
-            $item->jenis_voucher = SpinnerJenisvoucher::where('index', $item->jenis_voucher)->first()->nama;
-        });
-
-        $dataArray = [];
-        $dataArray[] = ["No", "Jenis Voucher", "Kode Voucher", "Username", "Nama Bo", "Saldo", "User Klaim", "Tgl Klaim", "Tgl Exp"];
-
-        foreach ($spinnervoucher2 as $index => $spv) {
-            $rowData = [
-                $index + 1,
-                $spv->jenis_voucher,
-                $spv->kode_voucher,
-                $spv->username,
-                $spv->bo,
-                $spv->saldo,
-                $spv->user_klaim,
-                $spv->tgl_klaim,
-                $spv->tgl_exp,
-            ];
-            $dataArray[] = $rowData;
-        }
-        $jenis_voucher = SpinnerJenisvoucher::get();
+        $perPage = 10;
+        $page =  request()->get('page', 1);
+        $slicedData = array_slice($spinnervoucher, ($page - 1) * $perPage, $perPage);
+        $spinnervoucher = new LengthAwarePaginator(
+            $slicedData,
+            count($spinnervoucher),
+            $perPage,
+            $page,
+            ['path' => url()->current()]
+        );
 
         if ($api == 0) {
 
@@ -243,7 +403,7 @@ class SpinnerVoucherController extends Controller
                 'id' => '',
                 'datavoucher' => $dataArray,
                 'nama_bo' => getDataBo2(),
-                'jumlah' => '',
+                'jumlah' => count($dataArray),
                 'search_tgl_default' => $search_tgl_default
             ])->with('i', (request()->input('page', 1) - 1) * 5);
         } else {
@@ -298,13 +458,22 @@ class SpinnerVoucherController extends Controller
 
     public function update(Request $request, $id)
     {
-        $validateData = $request->validate([
+
+        $request->validate([
             'username' => 'required|max:255'
         ]);
 
-        SpinnerVoucher::where('id', $id)->update($validateData);
+        $data = [
+            'username' => $request->username
+        ];
 
-        return response()->json(['success' => 'Item berhasil diupdate!']);
+        $action = $this->action($id, $data, "PUT");
+        return $action;
+        if ($action) {
+            return response()->json(['success' => 'Item berhasil diupdate!']);
+        } else {
+            return response()->json(['gagal' => 'Item gagal diupdate!']);
+        }
     }
 
     public function destroy($id)
@@ -412,27 +581,22 @@ class SpinnerVoucherController extends Controller
         $writer->save('php://output');
     }
 
+
     public function updateStatus(Request $request, $id)
     {
-        $status_transfer = $request->input('status_transfer');
 
-        $statusModel = SpinnerVoucher::find($id);
-        if ($statusModel) {
-            $statusModel->status_transfer = $status_transfer;
-            try {
-                $saved = $statusModel->save();
+        $status_transfer = $request->status_transfer;
 
-                if ($saved) {
-                    return response()->json(['message' => 'Status diperbarui dan tersimpan di database'], 200);
-                } else {
-                    // Penyimpanan gagal
-                    return response()->json(['message' => 'Gagal menyimpan perubahan ke database'], 500);
-                }
-            } catch (QueryException $e) {
-                $errorMessage = $e->getMessage();
-                return response()->json(['message' => $errorMessage], Response::HTTP_INTERNAL_SERVER_ERROR);
-            }
-        }
+        $data = [
+            'status_transfer' => $status_transfer
+        ];
+
+        $url = "http://127.0.0.1:8006/api/voucher/updatestatus/" . $id;
+
+
+
+        $action = $this->action($id, $data, "PUT", $url);
+        return $action;
 
 
         // Respon sukses (opsional)
@@ -440,8 +604,110 @@ class SpinnerVoucherController extends Controller
     }
 
 
+    // public function updateStatus(Request $request, $id)
+    // {
+    //     $status_transfer = $request->status_transfer;
+
+    //     $statusModel = SpinnerVoucher::find($id);
+    //     if ($statusModel) {
+    //         $statusModel->status_transfer = $status_transfer;
+    //         try {
+    //             $saved = $statusModel->save();
+
+    //             if ($saved) {
+    //                 return response()->json(['message' => 'Status diperbarui dan tersimpan di database'], 200);
+    //             } else {
+    //                 // Penyimpanan gagal
+    //                 return response()->json(['message' => 'Gagal menyimpan perubahan ke database'], 500);
+    //             }
+    //         } catch (QueryException $e) {
+    //             $errorMessage = $e->getMessage();
+    //             return response()->json(['message' => $errorMessage], Response::HTTP_INTERNAL_SERVER_ERROR);
+    //         }
+    //     }
+
+
+    //     // Respon sukses (opsional)
+    //     return response()->json(['message' => 'Status diperbarui'], 200);
+    // }
+
+
     public function exportexcel($id)
     {
         return Excel::download(new UsersExport($id), 'users.xlsx');
+    }
+
+    public function getData($id = '')
+    {
+        $url = $this->getUrl();
+        $options = [
+            'http' => [
+                'header' => 'postman-token: 54a06989-9a14-4515-afca-766a0f6f3dd9'
+            ]
+        ];
+        $context = stream_context_create($options);
+        $data = file_get_contents($url, false, $context);
+
+        $data = json_decode($data, true);
+        $data = $data['data'];
+
+        if ($id != '') {
+            foreach ($data as $index => $d) {
+                if ($d['id'] == $id) {
+                    $data = $data[$index];
+                }
+            }
+        }
+        return $data;
+    }
+
+    public function getUrl($id = '')
+    {
+        if ($id != '') {
+            $url = "http://127.0.0.1:8006/api/voucher/" . $id;
+            // dd($url);
+        } else {
+            $url = "http://127.0.0.1:8006/api/voucher";
+        }
+        // dd($url);
+
+        return $url;
+    }
+
+    public function action($id, $data, $method = "POST", $url = "")
+    {
+        if ($url == '') {
+            $url = $this->getUrl($id);
+            $data = [
+                "username" => $data['username']
+            ];
+        } else {
+            $data = [
+                "status_transfer" => $data['status_transfer']
+            ];
+        }
+
+        $data_string = json_encode($data);
+        $headers = array(
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($data_string),
+            'header' => 'postman-token: 54a06989-9a14-4515-afca-766a0f6f3dd9'
+        );
+
+        $ch = curl_init($url);
+
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $result = curl_exec($ch);
+
+        if (curl_error($ch)) {
+            echo 'Error:' . curl_error($ch);
+        }
+
+        curl_close($ch);
+        return $result;
     }
 }

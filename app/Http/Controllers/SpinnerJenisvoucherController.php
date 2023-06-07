@@ -179,7 +179,6 @@ class SpinnerJenisvoucherController extends Controller
 
     public function action($id, $data, $method = "POST")
     {
-
         $url = $this->getUrl($id);
 
         $data = [
